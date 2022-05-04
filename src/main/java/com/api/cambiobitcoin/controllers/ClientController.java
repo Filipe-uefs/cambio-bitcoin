@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
+import java.lang.management.OperatingSystemMXBean;
 import java.util.Objects;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/v1/bitcoin/customer")
@@ -46,5 +48,13 @@ public class ClientController {
             status = HttpStatus.CREATED;
         }
         return ResponseEntity.status(status).body(newClient);
+    }
+
+    @DeleteMapping("/{cpf}")
+    public ResponseEntity<String> deleteClientByCpf(@NotEmpty @NotNull @PathVariable String cpf) {
+        boolean existsClient = clientService.existsClientByCpf(cpf);
+        HttpStatus status = !existsClient ? HttpStatus.NOT_FOUND: HttpStatus.OK;
+        if (existsClient) clientService.deleteClientByCPF(cpf);
+        return ResponseEntity.status(status).body("");
     }
 }

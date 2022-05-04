@@ -25,4 +25,9 @@ public class ClientService {
     public ClientModel createClient(ClientModel client) {
         return clientRepository.save(client);
     }
+
+    @Transactional
+    public void deleteClientByCPF(String cpf) {
+        clientRepository.deleteByCpf(cpf);
+    }
 }
