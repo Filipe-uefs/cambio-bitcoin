@@ -31,11 +31,13 @@ public class ClientService {
         newAccount.setClient(newClient);
         newAccount.setBalance((double) 0);
         newAccount.setQtdBitcoin(BigDecimal.valueOf(0));
+        accountService.createAccount(newAccount);
         return newClient;
     }
 
     @Transactional
     public void deleteClientByCPF(String cpf) {
+        accountService.deleteAccount(getClientByCPF(cpf));
         clientRepository.deleteByCpf(cpf);
     }
 }
