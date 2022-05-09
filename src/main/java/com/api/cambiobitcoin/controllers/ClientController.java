@@ -1,7 +1,9 @@
 package com.api.cambiobitcoin.controllers;
 
 import com.api.cambiobitcoin.dtos.ClientDto;
+import com.api.cambiobitcoin.models.AccountModel;
 import com.api.cambiobitcoin.models.ClientModel;
+import com.api.cambiobitcoin.services.AccountService;
 import com.api.cambiobitcoin.services.ClientService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -14,9 +16,9 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
-import java.lang.management.OperatingSystemMXBean;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/v1/bitcoin/customer")
@@ -26,13 +28,30 @@ public class ClientController {
 
     @Autowired
     ClientService clientService;
+    @Autowired
+    AccountService accountService;
 
     @GetMapping("/{cpf}")
     @ApiOperation("Search client by cpf")
-    public ResponseEntity<ClientModel> getClientByCPF(@NotNull @NotEmpty @PathVariable String cpf) {
+    public ResponseEntity<Map<String, String>> getClientByCPF(@NotNull @NotEmpty @PathVariable String cpf) {
         ClientModel client = clientService.getClientByCPF(cpf);
-        HttpStatus status = Objects.isNull(client) ? HttpStatus.NOT_FOUND: HttpStatus.OK;
-        return ResponseEntity.status(status).body(client);
+        AccountModel account;
+        HttpStatus status;
+        Map<String, String> clientAndAccount = new HashMap<>();
+        if (Objects.isNull(client)) {
+            status = HttpStatus.NOT_FOUND;
+            clientAndAccount.put("message", "Esse cpf não existe em nossa base");
+
+        } else {
+            status = HttpStatus.OK;
+            account = accountService.getAccountByClient(client);
+            clientAndAccount.put("fullName", client.getFullName());
+            clientAndAccount.put("cpf", client.getCpf());
+            clientAndAccount.put("balance", account.getBalance().toString());
+            clientAndAccount.put("BTC", account.getQtdBitcoin().toString());
+        }
+
+        return ResponseEntity.status(status).body(clientAndAccount);
     }
 
     @PostMapping
