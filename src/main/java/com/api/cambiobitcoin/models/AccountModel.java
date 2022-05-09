@@ -22,5 +22,6 @@ public class AccountModel {
     @Getter @Setter
     private Double balance;
     @Getter @Setter
+    @Column(precision = 19, scale = 10)
     private BigDecimal qtdBitcoin;
 }

@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.math.BigDecimal;
 
 @Service
 public class AccountService {
@@ -29,6 +30,10 @@ public class AccountService {
     public void updateCredit(AccountModel account, Double credit) {
         Double newBalance = account.getBalance() + credit;
         account.setBalance(newBalance);
+        accountRepository.save(account);
+    }
+    @Transactional
+    public void updateCreditAndBtc(AccountModel account) {
         accountRepository.save(account);
     }
 }

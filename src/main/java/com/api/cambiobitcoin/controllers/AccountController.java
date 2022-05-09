@@ -1,8 +1,10 @@
 package com.api.cambiobitcoin.controllers;
 
+import com.api.cambiobitcoin.models.AccountModel;
 import com.api.cambiobitcoin.models.ClientModel;
 import com.api.cambiobitcoin.services.AccountService;
 import com.api.cambiobitcoin.services.ClientService;
+import com.api.cambiobitcoin.utils.RequestBtc;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -43,7 +46,41 @@ public class AccountController {
             message.put("message", "created");
             status = HttpStatus.OK;
         }
-
         return ResponseEntity.status(status).body(message);
     }
+
+    @PostMapping("/{cpf}/bitcoin")
+    public ResponseEntity<Map<String, String>> buyBtc(@PathVariable @NotNull @NotEmpty String cpf,
+                                                      @RequestBody @NotNull Map<String, BigDecimal> mapBtc) {
+        ClientModel client = clientService.getClientByCPF(cpf);
+        HttpStatus status;
+        Map<String, String> message = new HashMap<>();
+        if (Objects.isNull(client)) {
+            status = HttpStatus.NOT_FOUND;
+            message.put("message", "Esse cpf não existe em nossa base de dados");
+        } else {
+            Map<String, String> mapRequestBtc = RequestBtc.getValueBtc();
+            if (mapRequestBtc.get("response").equals("500")) {
+                status = HttpStatus.BAD_GATEWAY;
+                message.put("message", "Erro ao tentar buscar dados de btc, tente novamente depois");
+            } else if (mapBtc.get("btc").compareTo(new BigDecimal(0)) > 0) {
+                status = HttpStatus.OK;
+                BigDecimal valueToBuy = mapBtc.get("btc")
+                        .multiply(new BigDecimal(mapRequestBtc.get("value")));
+                AccountModel account = accountService.getAccountByClient(client);
+                if (valueToBuy.compareTo(BigDecimal.valueOf(account.getBalance())) > 0) {
+                    message.put("message", "Operação não realizada - Saldo insuficiente");
+                } else {
+                    account.setBalance(account.getBalance() - valueToBuy.doubleValue());
+                    account.setQtdBitcoin(account.getQtdBitcoin().add(mapBtc.get("btc")));
+                    accountService.updateCreditAndBtc(account);
+                }
+            } else {
+                System.out.println(mapBtc.get("btc"));
+            }
+        }
+
+        return ResponseEntity.status(200).body(message);
+    }
+
 }
