@@ -60,27 +60,44 @@ public class AccountController {
             message.put("message", "Esse cpf não existe em nossa base de dados");
         } else {
             Map<String, String> mapRequestBtc = RequestBtc.getValueBtc();
+            AccountModel account = accountService.getAccountByClient(client);
             if (mapRequestBtc.get("response").equals("500")) {
                 status = HttpStatus.BAD_GATEWAY;
                 message.put("message", "Erro ao tentar buscar dados de btc, tente novamente depois");
-            } else if (mapBtc.get("btc").compareTo(new BigDecimal(0)) > 0) {
+            }
+            else if (mapBtc.get("btc").compareTo(new BigDecimal(0)) > 0) {
                 status = HttpStatus.OK;
                 BigDecimal valueToBuy = mapBtc.get("btc")
                         .multiply(new BigDecimal(mapRequestBtc.get("value")));
-                AccountModel account = accountService.getAccountByClient(client);
+
                 if (valueToBuy.compareTo(BigDecimal.valueOf(account.getBalance())) > 0) {
                     message.put("message", "Operação não realizada - Saldo insuficiente");
                 } else {
                     account.setBalance(account.getBalance() - valueToBuy.doubleValue());
                     account.setQtdBitcoin(account.getQtdBitcoin().add(mapBtc.get("btc")));
                     accountService.updateCreditAndBtc(account);
+                    message.put("message", "Operação realizada com sucesso");
+                    message.put("saldo", account.getBalance().toString());
+                    message.put("BTC", account.getQtdBitcoin().toString());
                 }
-            } else {
-                System.out.println(mapBtc.get("btc"));
+            }
+            else {
+                status = HttpStatus.OK;
+                if (account.getQtdBitcoin().compareTo(mapBtc.get("btc").abs()) < 0) {
+                    message.put("message", "Operação não realizada - Quantidade de btc em sua conta insuficiente");
+                } else {
+                    Double newBalance = mapBtc.get("btc").abs()
+                            .multiply(new BigDecimal(mapRequestBtc.get("value"))).doubleValue();
+                    account.setQtdBitcoin(account.getQtdBitcoin().subtract(mapBtc.get("btc").abs()));
+                    account.setBalance(newBalance + account.getBalance());
+                    accountService.updateCreditAndBtc(account);
+                    message.put("message", "Operação realizada com sucesso");
+                    message.put("saldo", account.getBalance().toString());
+                    message.put("BTC", account.getQtdBitcoin().toString());
+                }
             }
         }
-
-        return ResponseEntity.status(200).body(message);
+        return ResponseEntity.status(status).body(message);
     }
 
 }
