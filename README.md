@@ -22,7 +22,7 @@ Passo a passo
 3 - Rode
 ```sh
 mvn clean
-mvn compile
+mvn install
 ```
 4 - Execute o projeto pela IDE
 
